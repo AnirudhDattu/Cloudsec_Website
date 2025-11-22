@@ -92,7 +92,7 @@ const AIChat: React.FC = () => {
         try {
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const chat = ai.chats.create({
-                model: 'gemini-3-pro-preview',
+                model: 'gemini-2.0-flash-lite',
                 config: {
                     systemInstruction: `
                       You are Sentinel Scout, an expert Cloud Security AI Agent.
