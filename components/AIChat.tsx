@@ -131,7 +131,7 @@ const AIChat: React.FC = () => {
                       3. You can navigate the user interface.
 
                       DATA STRUCTURE:
-                      - Findings contain: rule_id, severity (High/Medium/Low), service (e.g., Storage, SQL), description, and evidence.
+                      - Findings contain: rule_id, severity (High, Medium, Low), service (e.g., Storage, SQL), description, and evidence.
                       - Evidence is a JSON object with technical details (e.g., firewall rules, encryption status).
                       - Remediation steps are provided in the findings data.
 
@@ -245,15 +245,17 @@ const AIChat: React.FC = () => {
         for (const call of result.functionCalls) {
           const toolResult = await executeTool(call.name, call.args);
           functionResponses.push({
-            name: call.name,
-            response: { result: toolResult },
-            id: call.id,
+            functionResponse: {
+              name: call.name,
+              response: { result: toolResult },
+              id: call.id,
+            },
           });
         }
 
         // Send tool results back to model
         setToolStatus("Analyzing telemetry...");
-        result = await chatSession.sendMessage(functionResponses);
+        result = await chatSession.sendMessage({ message: functionResponses });
       }
 
       // 3. Final Text Response
