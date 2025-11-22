@@ -9,10 +9,51 @@ Ensure your existing Python environment has Flask installed:
 pip install flask flask-cors
 ```
 
-## Create `server.py`
+## 1. Update `scanner/run_scan.py`
 
-Create a file named `server.py` in your project root (the same directory as `run_scan.py` and `app.py`). 
-This script acts as a bridge, using your existing `db.dao` to fetch data and serving it to the React app.
+Ensure your `run_scan.py` returns the findings list so the API can save them.
+
+```python
+# scanner/run_scan.py
+from scanner.inventory import list_storage_accounts
+from scanner.checks_azure import check_storage_public_blob_access
+from scanner.check_storage_encryption import check_storage_encryption
+from scanner.check_vms import list_vms_with_public_ip
+from scanner.check_nsg import check_open_nsg_rules
+from scanner.check_function_apps import check_unrestricted_function_apps
+import json
+
+def run():
+    findings = []
+
+    print("Scanning storage accounts...")
+    accounts = list_storage_accounts()
+    findings += check_storage_public_blob_access(accounts)
+    print("Checking storage account encryption...")
+    findings += check_storage_encryption(accounts)
+
+    print("Scanning virtual machines for public IPs...")
+    findings += list_vms_with_public_ip()
+
+    print("Scanning NSGs for open rules...")
+    findings += check_open_nsg_rules()
+
+    print("Scanning Function Apps for anonymous access...")
+    findings += check_unrestricted_function_apps()
+
+    print(f"\nTotal findings: {len(findings)}")
+    
+    # ... existing print logic ...
+    
+    return findings  # <--- IMPORTANT: Return the findings list!
+
+if __name__ == "__main__":
+    run()
+```
+
+## 2. Update `server.py`
+
+Create or update `server.py` in your project root. This script bridges the React frontend with your Python logic.
 
 ```python
 # server.py
@@ -20,13 +61,12 @@ import json
 import time
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import db.dao as dao  # Imports your existing DAO functions
-from scanner.run_scan import run_scan # Imports your existing scan logic if available
+import db.dao as dao
+from scanner import run_scan  # <--- Correct Import
 
 app = Flask(__name__)
-CORS(app)  # Enables the React frontend to communicate with this server
+CORS(app)
 
-# Helper to safely parse the JSON strings stored in your DB
 def parse_json_field(field_value, default_value):
     if not field_value:
         return default_value
@@ -40,21 +80,16 @@ def parse_json_field(field_value, default_value):
 @app.route('/api/findings', methods=['GET'])
 def get_findings():
     run_id = request.args.get('run_id')
-    
-    # Use your existing DAO functions
     if run_id:
         findings_list = dao.get_findings_by_run(run_id)
     else:
         findings_list = dao.get_all_findings()
         
-    # Map the DAO dictionaries to the Frontend API contract
     mapped_results = []
     for f in findings_list:
-        # Parse 'evidence' and 'remediation' from JSON strings to objects/lists
         evidence = parse_json_field(f.get('evidence'), {})
         remediation = parse_json_field(f.get('remediation'), [])
         
-        # If remediation is a list, join it into a string for the frontend table
         remediation_text = remediation
         if isinstance(remediation, list):
             remediation_text = "\n".join(remediation)
@@ -63,50 +98,47 @@ def get_findings():
             "id": str(f.get('id')),
             "run_id": f.get('run_id'),
             "rule_id": f.get('rule_id'),
-            "severity": f.get('severity'), # Must be 'High', 'Medium', 'Low', or 'Informational'
+            "severity": f.get('severity'),
             "service": f.get('service'),
-            "description": f.get('title'), # Frontend expects 'description', DB has 'title'
+            "description": f.get('title'),
             "remediation_steps": remediation_text, 
             "resource_id": f.get('resource_id'),
             "evidence": evidence
         })
-        
     return jsonify(mapped_results)
 
 @app.route('/api/runs', methods=['GET'])
 def get_runs():
-    # Use existing DAO
     runs = dao.get_all_runs()
-    
-    # Map to frontend contract
     return jsonify([{
-        "run_id": str(r.id), # Or r.run_id if that's your column
-        "timestamp": r.started_at.isoformat() if r.started_at else None,
-        "status": r.status,
-        "total_findings": 0 # You might need a separate count query or field here
+        "run_id": str(r.get('id')),
+        "timestamp": r.get('started_at').isoformat() if r.get('started_at') else None,
+        "status": r.get('status'),
+        "total_findings": 0 
     } for r in runs])
 
 @app.route('/api/trend', methods=['GET'])
 def get_trend():
-    # Use existing DAO
     trend = dao.get_findings_trend()
     return jsonify(trend)
 
 @app.route('/api/scan', methods=['POST'])
 def trigger_scan():
-    # Trigger your existing scan logic
     try:
-        # Example flow matching your 'app.py' logic:
         run_id = dao.start_run()
         
-        # NOTE: In a real deployment, run this in a background thread!
-        # For now, we run it synchronously to keep it simple.
-        findings = run_scan() 
+        # Execute the scan and get results
+        findings = run_scan.run()  # <--- Capture returned findings
+        
+        if findings is None:
+             findings = [] # Safety check
+             
         dao.save_findings(run_id, findings)
         dao.finish_run(run_id)
         
         return jsonify({"message": "Scan completed", "runId": str(run_id)})
     except Exception as e:
+        # Return error details to frontend
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

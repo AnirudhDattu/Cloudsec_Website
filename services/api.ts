@@ -40,7 +40,11 @@ const handleResponse = async (res: Response, defaultMsg: string) => {
     let errorDetails = `${res.status} ${res.statusText}`;
     try {
       const errorJson = await res.json();
-      if (errorJson.error) errorDetails = errorJson.error;
+      if (errorJson.error) {
+        errorDetails = errorJson.error;
+      } else if (errorJson.message) {
+        errorDetails = errorJson.message;
+      }
     } catch (e) {
       // Ignore JSON parse error, use status text
     }

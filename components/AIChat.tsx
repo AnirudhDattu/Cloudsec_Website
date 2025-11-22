@@ -224,8 +224,8 @@ const AIChat: React.FC = () => {
             
             // Send tool results back to model
             setToolStatus("Analyzing telemetry...");
-            // Pass the array of parts directly to avoid ContentUnion errors with object wrappers
-            result = await chatSession.sendMessage(functionResponses);
+            // Pass as { message: parts } to satisfy SDK ContentUnion requirement
+            result = await chatSession.sendMessage({ message: functionResponses });
         }
 
         // 3. Final Text Response
