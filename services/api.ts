@@ -33,6 +33,22 @@ export const saveConfig = (config: AppConfig) => {
 
 const SIMULATE_DELAY = 600;
 
+// --- API HELPER ---
+
+const handleResponse = async (res: Response, defaultMsg: string) => {
+  if (!res.ok) {
+    let errorDetails = `${res.status} ${res.statusText}`;
+    try {
+      const errorJson = await res.json();
+      if (errorJson.error) errorDetails = errorJson.error;
+    } catch (e) {
+      // Ignore JSON parse error, use status text
+    }
+    throw new Error(`${defaultMsg}: ${errorDetails}`);
+  }
+  return await res.json();
+};
+
 // --- API CLIENT ---
 
 export const getRuns = async (): Promise<Run[]> => {
@@ -41,8 +57,7 @@ export const getRuns = async (): Promise<Run[]> => {
   if (!config.useMock) {
     try {
       const res = await fetch(`${config.apiUrl}/runs`);
-      if (!res.ok) throw new Error('Failed to fetch runs');
-      return await res.json();
+      return await handleResponse(res, 'Failed to fetch runs');
     } catch (error) {
       console.error("API Error:", error);
       throw error; // Propagate to caller
@@ -64,8 +79,7 @@ export const getFindings = async (runId?: string): Promise<Finding[]> => {
         ? `${config.apiUrl}/findings?run_id=${runId}` 
         : `${config.apiUrl}/findings`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch findings');
-      return await res.json();
+      return await handleResponse(res, 'Failed to fetch findings');
     } catch (error) {
       console.error("API Error:", error);
       throw error;
@@ -90,8 +104,7 @@ export const getTrend = async (): Promise<TrendPoint[]> => {
   if (!config.useMock) {
     try {
       const res = await fetch(`${config.apiUrl}/trend`);
-      if (!res.ok) throw new Error('Failed to fetch trend');
-      return await res.json();
+      return await handleResponse(res, 'Failed to fetch trend');
     } catch (error) {
       console.error("API Error:", error);
       throw error;
@@ -108,9 +121,13 @@ export const triggerScan = async (): Promise<{ message: string; runId: string }>
   const config = getConfig();
 
   if (!config.useMock) {
-    const res = await fetch(`${config.apiUrl}/scan`, { method: 'POST' });
-    if (!res.ok) throw new Error('Failed to initiate scan');
-    return await res.json();
+    try {
+      const res = await fetch(`${config.apiUrl}/scan`, { method: 'POST' });
+      return await handleResponse(res, 'Failed to initiate scan');
+    } catch (error) {
+       console.error("Scan API Error:", error);
+       throw error;
+    }
   }
 
   // Mock Fallback
@@ -125,9 +142,13 @@ export const generateReport = async (runId: string): Promise<{ url: string }> =>
   const config = getConfig();
 
   if (!config.useMock) {
-     const res = await fetch(`${config.apiUrl}/report?run_id=${runId}`);
-     if (!res.ok) throw new Error('Failed to generate report');
-     return await res.json();
+     try {
+       const res = await fetch(`${config.apiUrl}/report?run_id=${runId}`);
+       return await handleResponse(res, 'Failed to generate report');
+     } catch (error) {
+       console.error("Report API Error:", error);
+       throw error;
+     }
   }
 
    return new Promise((resolve) => {
