@@ -1,0 +1,5 @@
+{
+  "name": "Azure Sentinel Scout",
+  "description": "A high-tech, cloud-native dashboard for visualizing Azure security scan findings with interactive analytics and reporting.",
+  "requestFramePermissions": []
+}
