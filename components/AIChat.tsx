@@ -79,6 +79,16 @@ const AIChat: React.FC = () => {
   // Initialize AI Chat Session
   useEffect(() => {
     const initAI = async () => {
+        if (!process.env.API_KEY) {
+            setMessages(prev => [...prev, {
+                id: 'sys-err-key',
+                sender: 'ai',
+                text: "SYSTEM ALERT: API_KEY is missing from environment variables. Please check your configuration and ensure the variable is named 'API_KEY'.",
+                timestamp: new Date()
+            }]);
+            return;
+        }
+
         try {
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const chat = ai.chats.create({
@@ -111,6 +121,12 @@ const AIChat: React.FC = () => {
             setChatSession(chat);
         } catch (e) {
             console.error("Failed to initialize AI", e);
+            setMessages(prev => [...prev, {
+                id: 'init-err',
+                sender: 'ai',
+                text: "Initialization Error: Failed to connect to the AI service. Check console for details.",
+                timestamp: new Date()
+            }]);
         }
     };
     initAI();
@@ -217,13 +233,19 @@ const AIChat: React.FC = () => {
         };
         setMessages(prev => [...prev, aiMsg]);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("AI Error:", error);
         setToolStatus(null);
+        
+        let errorMessage = "Connection Error: Unable to communicate with Neural Core.";
+        if (error.message) {
+             errorMessage = `System Error: ${error.message}`;
+        }
+
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             sender: 'ai',
-            text: "Connection Error: Unable to communicate with Neural Core.",
+            text: errorMessage,
             timestamp: new Date()
         }]);
     } finally {
