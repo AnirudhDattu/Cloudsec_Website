@@ -42,10 +42,10 @@ const Landing: React.FC = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
-            <button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">Workflow</button>
-            <button onClick={() => scrollToSection('capabilities')} className="hover:text-white transition-colors hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">Capabilities</button>
-            <button onClick={() => scrollToSection('benefits')} className="hover:text-white transition-colors hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">Benefits</button>
-            <button onClick={() => scrollToSection('integration')} className="hover:text-white transition-colors hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">Integrations</button>
+            <button onClick={() => scrollToSection('how-it-works')} className="hover:text-cyber-cyan transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">Workflow</button>
+            <button onClick={() => scrollToSection('capabilities')} className="hover:text-cyber-cyan transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">Capabilities</button>
+            <button onClick={() => scrollToSection('benefits')} className="hover:text-cyber-cyan transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">Benefits</button>
+            <button onClick={() => scrollToSection('integration')} className="hover:text-cyber-cyan transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">Integrations</button>
           </div>
 
           <button 
